@@ -1,0 +1,188 @@
+/*
+ * Overlay for a GPIO connected PWM cooling fan controlled by hardware PWM0.
+ * Based on pwm-gpio-fan-overlay
+ *
+ * Optional parameters:
+ *  - "tach_pin"    [Optional] BCM number of the pin connected to the fan tachometer pin.
+ *          Assumes open-collecter/drain output from fan, 2-cycles per revolution.
+ *  - "pwm_pin_12"  Enables PWM output on PWM0_CHAN0, GPIO pin 12.
+ *  - "pwm_pin_13"  Enables PWM output on PWM0_CHAN1, GPIO pin 13.
+ *  - "pwm_pin_18"  [Default] Enables PWM output on PWM0_CHAN0, GPIO pin 18.
+ *  - "pwm_pin_19"  Enables PWM output on PWM0_CHAN0, GPIO pin 19.
+ *  - "temp0"   CPU temperature at which fan is started with low speed in millicelsius,
+ *          default 55000 (55 °C)
+ *  - "temp1"   CPU temperature at which fan is switched to medium speed in millicelsius,
+ *          default 60000  (60 °C)
+ *  - "temp2"   CPU temperature at which fan is switched to high speed in millicelsius,
+ *          default 67500  (67.5 °C)
+ *  - "temp3"   CPU temperature at which fan is switched to max speed in millicelsius,
+ *          default 75000  (75 °C)
+ *  - "hyst0"  Temperature hysteris at which fan is stopped in millicelsius,
+ *          default 5000 (resulting in 50 °C)
+ *  - "hyst1"  Temperature hysteris at which fan is switched back to low speed
+ *          in millicelsius, default 5000 (resulting in 55 °C)
+ *  - "hyst2"  Temperature hysteris at which fan is switched back to medium speed
+ *          in millicelsius, default 5000 (resulting in 62.5 °C)
+ *  - "hyst3"  Temperature hysteris at which fan is switched back to high speed
+ *          in millicelsius, default 5000 (resulting in 70 °C)
+ *  - "speed0" Fan speed for low cooling state in range 0 to 255,
+ *          default 114 (45% PWM duty cycle)
+ *  - "speed1" Fan speed for medium cooling state in range 0 to 255,
+ *          default 152 (60% PWM duty cycle)
+ *  - "speed2" Fan speed for high cooling state in range 0 to 255,
+ *          default 204 (80% PWM duty cycle)
+ *  - "speed3" Fan speed for max cooling state in range 0 to 255,
+ *          default 255 (100% PWM duty cycle)
+ *
+ * N.B.
+ *  - Uses the rp1's hardware PWM0. Requires RPi5 or equivalent module.
+ *    This may interfere with concurrent usage of the Pis analogue audio output, or i2s audio output.
+ *
+ * Requires:
+ *  - A PWM controlled cooling fan connected to the GPIO, such as a
+ *    Noctua NF-A4x10_5V
+ *
+ * Build (local):
+ *  - dtc -@ -I dts -O dtb -o pwm0-fan.dtbo pwm0-fan-overlay.dts
+ *  - sudo cp pwm0-fan.dtbo /boot/overlays/pwm0-fan.dtbo
+ *
+ * Activate:
+ *  - add "dtoverlay=pwm0-fan" to /boot/firmware/config.txt.
+ *  - specify parameters as e.g. "dtoverlay=pwm0-fan,pwm_pin_12,tach_pin=15,temp0=5" etc.
+ *
+ */
+
+/dts-v1/;
+/plugin/;
+
+
+/ {
+    compatible = "raspberrypi,5-model-b", "brcm,bcm2712";
+
+    fragment@0 {
+        target = <&rp1_gpio>;
+        __overlay__ {
+            pwm_fan_pin_pwm: pwm_fan_pin_pwm {
+                brcm,pins = <18>;
+                function = "pwm0";
+                bias-pull-down;
+            };
+        };
+    };
+
+    fragment@1 {
+        target = <&rp1_pwm0>;
+        __overlay__ {
+            pinctrl-names = "default";
+            pinctrl-0 = <&pwm_fan_pin_pwm>;
+            status = "okay";
+        };
+    };
+
+    fragment@2 {
+        target-path="/";
+        __overlay__ {
+            fan: cooling_fan@0 {
+                status = "okay";
+                compatible = "pwm-fan";
+                #cooling-cells = <2>;
+                cooling-min-state = <0>;
+                cooling-max-state = <3>;
+                cooling-levels = <0 114 152 204 255>;
+                pwms = <&rp1_pwm0 2 40000 0>;
+            };
+        };
+    };
+
+    fragment@3 {
+        target = <&rp1_gpio>;
+        __dormant__ {
+            pwm_fan_pin_tach: pwm_fan_pin_tach {
+                brcm,pins = <15>;
+                function = "gpio";
+                bias-pull-up;
+            };
+        };
+    };
+
+    fragment@4 {
+        target = <&fan>;
+        __dormant__ {
+            pinctrl-names = "default";
+            pinctrl-0 = <&pwm_fan_pin_tach>;
+            interrupt-parent = <&rp1_gpio>;
+            interrupts = <15 1>;
+            pulses-per-revolution = <2>;
+        };
+    };
+
+    fragment@5 {
+        target = <&thermal_trips>;
+        __overlay__ {
+            pwm_fan_trip0: pwm-fan-trip0 {
+                temperature = <55000>;  /* 25°C */
+                hysteresis = <5000>;    /* 5°C */
+                type = "active";
+            };
+            pwm_fan_trip1: pwm-fan-trip1 {
+                temperature = <60000>;  /* 50°C */
+                hysteresis = <5000>;
+                type = "active";
+            };
+            pwm_fan_trip2: pwm-fan-trip2 {
+                temperature = <67500>;  /* 67.5°C */
+                hysteresis = <5000>;
+                type = "active";
+            };
+            pwm_fan_trip3: pwm-fan-trip3 {
+                temperature = <75000>;  /* 75°C */
+                hysteresis = <5000>;
+                type = "active";
+            };
+        };
+    };
+
+    fragment@6 {
+        target = <&cooling_maps>;
+        __overlay__ {
+            pwm_fan_map0 {
+                trip = <&pwm_fan_trip0>;
+                cooling-device = <&fan 0 1>;
+            };
+            pwm_fan_map1 {
+                trip = <&pwm_fan_trip1>;
+                cooling-device = <&fan 1 2>;
+            };
+            pwm_fan_map2 {
+                trip = <&pwm_fan_trip2>;
+                cooling-device = <&fan 2 3>;
+            };
+            pwm_fan_map3 {
+                trip = <&pwm_fan_trip3>;
+                cooling-device = <&fan 3 4>;
+            };
+        };
+    };
+
+    __overrides__ {
+        temp0 = <&pwm_fan_trip0>,"temperature:0";
+        hyst0 = <&pwm_fan_trip0>,"hysteresis:0";
+        temp1 = <&pwm_fan_trip1>,"temperature:0";
+        hyst1 = <&pwm_fan_trip2>,"hysteresis:0";
+        temp2 = <&pwm_fan_trip1>,"temperature:0";
+        hyst2 = <&pwm_fan_trip3>,"hysteresis:0";
+        temp3 = <&pwm_fan_trip2>,"temperature:0";
+        hyst3 = <&pwm_fan_trip3>,"hysteresis:0";
+
+        speed0 =   <&fan>,"cooling-levels:4";
+        speed1 =   <&fan>,"cooling-levels:8";
+        speed2 =   <&fan>,"cooling-levels:12";
+        speed3 =   <&fan>,"cooling-levels:16";
+
+        pwm_pin_12 = <&pwm_fan_pin_pwm>,"brcm,pins:0=12", <&fan>,"pwms:4=0";
+        pwm_pin_13 = <&pwm_fan_pin_pwm>,"brcm,pins:0=13", <&fan>,"pwms:4=1";
+        pwm_pin_18 = <&pwm_fan_pin_pwm>,"brcm,pins:0=18", <&fan>,"pwms:4=2";
+        pwm_pin_19 = <&pwm_fan_pin_pwm>,"brcm,pins:0=19", <&fan>,"pwms:4=3";
+        tach_pin = <0>,"+3+4", <&pwm_fan_pin_tach>,"brcm,pins:0", <&fan>,"interrupts:0";
+    };
+};
