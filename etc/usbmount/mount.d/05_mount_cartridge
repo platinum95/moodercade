@@ -1,0 +1,76 @@
+#!/bin/bash
+
+user="platinum95"
+usb_port="/dev/disk/by-path/platform-xhci-hcd.0-usb-0:1:1.0-scsi-0:0:0:0-part1"
+
+home="$(eval echo ~$user)"
+retropie_path="$home/RetroPie"
+retropie_config_dir="/opt/retropie/configs"
+
+usb_overlay_path="$UM_MOUNTPOINT/retropie-overlay"
+usb_overlay_workdir="$UM_MOUNTPOINT/.workdir"
+
+usb_config_path="$UM_MOUNTPOINT/retropie-config"
+usb_config_workdir_path="$UM_MOUNTPOINT/.workdir_configs"
+
+## internals
+hook_name=${0##*/}
+
+## functions
+function log() {
+    logger -p user.$1 -t usbmount-"$hook_name"-[$$] -- "$2"
+}
+
+function log_cmd() {
+    local ret
+    local error
+    error="$("$@" 2>&1 >/dev/null)"
+    ret=$?
+    [[ "$ret" -ne 0 ]] && log err "$* - returned $ret - $error"
+}
+
+## some sanity checking
+if [[ -z "$UM_MOUNTPOINT" ]]; then
+    log err "UM_MOUNTPOINT not set!"
+    exit 0
+fi
+
+if [[ ! -d "$UM_MOUNTPOINT" ]]; then
+    log err "UM_MOUNTPOINT is not a directory"
+    exit 0
+fi
+
+if [[ ! "$(readlink -f $usb_port)" -ef "/$UM_DEVICE" ]]; then
+    log info "$UM_DEVICE is not in matching port"
+    exit 0
+fi
+
+if [[ ! -d "$usb_overlay_path" ]]; then
+    log info "$usb_overlay_path not found found"
+    exit 0
+fi
+
+log info "Found overlay directory, /$UM_DEVICE is a valid target"
+log info "Syncing directory tree"
+log_cmd rsync -a --include '*/' --exclude '*' "/home/platinum95/RetroPie/" "$usb_overlay_path"
+
+if [[ ! -d "$usb_overlay_workdir" ]]; then
+    log info "Creating overlay workdir at $usb_overlay_workdir"
+    log_cmd mkdir "$usb_overlay_workdir"
+fi
+
+if [[ ! -d "$usb_config_path" ]]; then
+    log info "Creating config dir at $usb_config_path"
+    log_cmd mkdir "$usb_config_path"
+fi
+
+if [[ ! -d "$usb_config_workdir_path" ]]; then
+    log info "Creating config overlay workdir at $usb_config_workdir_path"
+    log_cmd mkdir "$usb_config_workdir_path"
+fi
+
+log info "Overlaying $usb_overlay_path onto RetroPie dir $retropie_path"
+log_cmd fuse-overlayfs -o lowerdir="$retropie_path",upperdir="$usb_overlay_path/",workdir="$usb_overlay_workdir" "$retropie_path"
+
+log info "Overlaying $usb_config_path onto RetroPie config dir $retropie_config_dir"
+fuse-overlayfs -o lowerdir="$retropie_config_dir",upperdir="$usb_config_path",workdir="$usb_config_workdir_path" "$retropie_config_dir"
