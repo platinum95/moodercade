@@ -1,0 +1,4 @@
+124c124
+<         DISABLE_MENU=${DISABLE_MENU:-"$ini_value"}
+---
+>         DISABLE_MENU="$ini_value"
