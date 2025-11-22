@@ -1,0 +1,1 @@
+console=serial0,115200 root=PARTUUID=52c07bee-02 rootfstype=ext4 fsck.repair=yes rootwait cfg80211.ieee80211_regdom=IE quiet splash plymouth.ignore-serial-consoles loglevel=6 logo.nologo
