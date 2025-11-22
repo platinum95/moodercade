@@ -1,0 +1,5 @@
+Rough collection of files for a RetroPie based home arcade-ish type machine.
+
+# Other setup
+Mask plymouth-quit systemd service so the splash stays active while the autolaunch is working stuff out in the background.
+
