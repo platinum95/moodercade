@@ -13,11 +13,19 @@ ports_sys="ports"
 
 RUNNING_CMD=0
 
+if mountpoint -q "/media/usb0"; then
+   autostart_path=/media/usb0/retropie-overlay/autostart.rc
+fi
+
 if [[ -f "$autostart_path" ]]; then
     source "$autostart_path"
     export RUNCOMMAND_CONF="fakeFile"
     if [[ -z "$AUTOSTART_VMODE" ]]; then
         AUTOSTART_VMODE=0
+    fi
+
+    if [[ -v AUTOSTART_DELAY ]]; then
+	    sleep $AUTOSTART_DELAY
     fi
 
     autostart_rom_path="$retropie_path/$AUTOSTART_ROM"
