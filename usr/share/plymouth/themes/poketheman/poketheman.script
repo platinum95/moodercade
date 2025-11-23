@@ -1,0 +1,285 @@
+#Basic Plymouth Theme
+
+#-------------------------Window Settings-------------------------
+
+Window.SetBackgroundTopColor (0, 0, 0);     # Nice colour on top of the screen fading to
+Window.SetBackgroundBottomColor (0, 0, 0);  # an equally nice colour on the bottom
+
+screen_width = Window.GetWidth();
+screen_height = Window.GetHeight();
+
+#------------------------------Frames-------------------------------
+
+frame0_fname = "frame0.png";
+frame1_fname = "frame1.png";
+frame2_fname = "frame2.png";
+frame3_fname = "frame3.png";
+frame4_fname = "frame4.png";
+frame5_fname = "frame5.png";
+frame6_fname = "frame6.png";
+frame7_fname = "frame7.png";
+
+frame0_image = Image (frame0_fname);
+
+
+# Fit image to screen. All frames are the same size
+if ( screen_width > screen_height )
+{
+    # Screen width is wider than screen height, we will scale to screen height
+    image_height = screen_height;
+    image_width = frame0_image.GetWidth() * ( screen_height / frame0_image.GetHeight() );
+
+    frame_y_pos = 0;
+    frame_x_pos = ( screen_width - image_width ) / 2;
+}
+else
+{
+    # Scale to width
+    image_width = screen_width;
+    image_height = frame0_image.GetHeight() * ( screen_width / frame0_image.GetWidth() );
+
+    frame_x_pos = 0;
+    frame_y_pos = ( screen_height - image_height ) / 2;
+}
+
+# Load & scale other frame images
+frame0_image = frame0_image.Scale( image_width, image_height );
+
+frame1_image = Image( frame1_fname );
+frame1_image = frame1_image.Scale( image_width, image_height );
+
+frame2_image = Image( frame2_fname );
+frame2_image = frame2_image.Scale( image_width, image_height );
+
+frame3_image = Image( frame3_fname );
+frame3_image = frame3_image.Scale( image_width, image_height );
+
+frame4_image = Image( frame4_fname );
+frame4_image = frame4_image.Scale( image_width, image_height );
+
+frame5_image = Image( frame5_fname );
+frame5_image = frame5_image.Scale( image_width, image_height );
+
+frame6_image = Image( frame6_fname );
+frame6_image = frame6_image.Scale( image_width, image_height );
+
+frame7_image = Image( frame7_fname );
+frame7_image = frame7_image.Scale( image_width, image_height );
+
+# Set up frame sprites
+sprite_a = Sprite( frame0_image );
+sprite_a.SetX( frame_x_pos );
+sprite_a.SetY( frame_y_pos );
+sprite_a.SetZ( 0 );
+sprite_a.SetOpacity( 1 );
+
+sprite_b = Sprite();
+sprite_b.SetX( frame_x_pos );
+sprite_b.SetY( frame_y_pos );
+sprite_b.SetZ( 1 );
+
+#------------------------------Animation-------------------------------;
+anim_state = 0;
+
+state_progress = 0;
+fun refresh_callback ()
+{
+    state_progress++;
+    if ( anim_state == 0 && state_progress == 100 )
+    {
+        state_progress = 0;
+        anim_state = 1;
+
+        sprite_b.SetImage( frame1_image );
+        sprite_b.SetOpacity( 1 );
+
+        sprite_a.SetOpacity( 0 );
+        sprite_a.SetImage( frame2_image );
+        sprite_a.SetZ( 2 );
+    }
+    else if ( anim_state == 1 && state_progress == 25 )
+    {
+        state_progress = 0;
+        anim_state = 2;
+
+        sprite_a.SetOpacity( 1 );
+
+        sprite_b.SetOpacity( 0 );
+        sprite_b.SetImage( frame3_image );
+        sprite_b.SetZ( 3 );
+    }
+    else if ( anim_state == 2 )
+    {
+        sprite_b.SetOpacity( state_progress / 50 );
+        if ( state_progress == 50 )
+        {
+            state_progress = 0;
+            anim_state = 3;
+
+            sprite_a.SetOpacity( 0 );
+            sprite_a.SetImage( frame4_image );
+            sprite_a.SetZ( 4 );
+        }
+    }
+    else if ( anim_state == 3 )
+    {
+        sprite_a.SetOpacity( state_progress / 50 );
+        if ( state_progress == 50 )
+        {
+            state_progress = 0;
+            anim_state = 4;
+
+            sprite_b.SetOpacity( 0 );
+            sprite_b.SetImage( frame5_image );
+            sprite_b.SetZ( 5 );
+        }
+    }
+    else if ( anim_state == 4 )
+    {
+        sprite_b.SetOpacity( state_progress / 50 );
+        if ( state_progress == 50 )
+        {
+            state_progress = 0;
+            anim_state = 5;
+
+            sprite_a.SetOpacity( 0 );
+            sprite_a.SetImage( frame6_image );
+            sprite_a.SetZ( 6 );
+        }
+    }
+    else if ( anim_state == 5 )
+    {
+        sprite_a.SetOpacity( state_progress / 50 );
+        if ( state_progress == 50 )
+        {
+            state_progress = 0;
+            anim_state = 6;
+
+            sprite_b.SetOpacity( 0 );
+            sprite_b.SetImage( frame7_image );
+            sprite_b.SetZ( 7 );
+        }
+    }
+    else if ( anim_state == 6 )
+    {
+        sprite_b.SetOpacity( state_progress / 50 );
+        if ( state_progress == 50 )
+        {
+            state_progress = 0;
+            anim_state = 7;
+
+            sprite_a = Sprite();
+        }
+    }
+}
+
+  
+Plymouth.SetRefreshFunction (refresh_callback);
+
+#-------------------------------- Basic Plymouth Boilerplate -----------------------
+
+#----------------------------------------- Dialogue --------------------------------
+
+status = "normal";
+
+fun dialog_setup()
+  {
+    local.box;
+    local.lock;
+    local.entry;
+    
+    box.image = Image("box.png");
+    lock.image = Image("lock.png");
+    entry.image = Image("entry.png");
+    
+    box.sprite = Sprite(box.image);
+    box.x = Window.GetWidth()  / 2 - box.image.GetWidth ()/2;
+    box.y = Window.GetHeight() / 2 - box.image.GetHeight()/2;
+    box.z = 10000;
+    box.sprite.SetPosition(box.x, box.y, box.z);
+    
+    lock.sprite = Sprite(lock.image);
+    lock.x = box.x + box.image.GetWidth()/2 - (lock.image.GetWidth() + entry.image.GetWidth()) / 2;
+    lock.y = box.y + box.image.GetHeight()/2 - lock.image.GetHeight()/2;
+    lock.z = box.z + 1;
+    lock.sprite.SetPosition(lock.x, lock.y, lock.z);
+    
+    entry.sprite = Sprite(entry.image);
+    entry.x = lock.x + lock.image.GetWidth();
+    entry.y = box.y + box.image.GetHeight()/2 - entry.image.GetHeight()/2;
+    entry.z = box.z + 1;
+    entry.sprite.SetPosition(entry.x, entry.y, entry.z);
+    
+    global.dialog.box = box;
+    global.dialog.lock = lock;
+    global.dialog.entry = entry;
+    global.dialog.bullet_image = Image("bullet.png");
+    dialog_opacity (1);
+  }
+    
+fun dialog_opacity(opacity)
+  {
+    dialog.box.sprite.SetOpacity (opacity);
+    dialog.lock.sprite.SetOpacity (opacity);
+    dialog.entry.sprite.SetOpacity (opacity);
+    for (index = 0; dialog.bullet[index]; index++)
+      {
+        dialog.bullet[index].sprite.SetOpacity(opacity);
+      }
+  }
+
+fun display_normal_callback ()
+  {
+    global.status = "normal";
+    if (global.dialog)
+      dialog_opacity (0);
+  }
+
+fun display_password_callback (prompt, bullets)
+  {
+    global.status = "password";
+    if (!global.dialog)
+	dialog_setup();
+    else
+	dialog_opacity(1);
+    for (index = 0; dialog.bullet[index] || index < bullets; index++)
+      {
+        if (!dialog.bullet[index])
+          {
+            dialog.bullet[index].sprite = Sprite(dialog.bullet_image);
+            dialog.bullet[index].x = dialog.entry.x + index * dialog.bullet_image.GetWidth();
+            dialog.bullet[index].y = dialog.entry.y + dialog.entry.image.GetHeight() / 2 - dialog.bullet_image.GetHeight() / 2;
+            dialog.bullet[index].z = dialog.entry.z + 1;
+            dialog.bullet[index].sprite.SetPosition(dialog.bullet[index].x, dialog.bullet[index].y, dialog.bullet[index].z);
+          }
+        if (index < bullets)
+          dialog.bullet[index].sprite.SetOpacity(1);
+        else
+          dialog.bullet[index].sprite.SetOpacity(0);
+      }
+  }
+
+Plymouth.SetDisplayNormalFunction(display_normal_callback);
+Plymouth.SetDisplayPasswordFunction(display_password_callback);
+
+
+#----------------------------------------- Quit --------------------------------
+
+fun quit_callback ()
+{
+}
+
+Plymouth.SetQuitFunction(quit_callback);
+
+#----------------------------------------- Message --------------------------------
+
+message_sprite = Sprite();
+message_sprite.SetPosition(10, 10, 10000);
+
+fun message_callback (text)
+{
+  my_image = Image.Text(text, 1, 1, 1);
+  message_sprite.SetImage(my_image);
+}
+
+Plymouth.SetMessageFunction(message_callback);

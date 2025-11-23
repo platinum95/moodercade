@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=nemekatosis
+Description=Nemesis plymouth theme for Katie
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/nemekatosis
+ScriptFile=/usr/share/plymouth/themes/nemekatosis/nemekatosis.script
